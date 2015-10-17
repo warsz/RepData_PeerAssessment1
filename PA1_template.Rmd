@@ -4,14 +4,52 @@ output:
   html_document:
     keep_md: true
 ---
-
+For the scope of the assignment please see the README.md file
 
 ## Loading and preprocessing the data
+The data set for this assessment is suplied in the GitHub repository so I will assume that it is already downloaded and present in the directory where the R markdown script is run. However if that is not the case and the data needs to be downloaded manually, then it can be found here: [Activity monitoring data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip) [52K]
 
+  1. Show any code that is needed to
+
+  2. Load the data (i.e. read.csv())
+
+  First unpack the compressed file, then load into a dataframe:
+```{r, ReadingData,echo=TRUE}
+unzip("./activity.zip")
+activityLog<-read.csv("activity.csv")
+```
+
+  3. Process/transform the data (if necessary) into a format suitable for your analysis. *Answer: This does not to be necessary and removing NA's or recunstructing data will be done below.*
 
 
 ## What is mean total number of steps taken per day?
+ 
+  1.  Calculate the total number of steps taken per day
+  
+      First we need to remove all NA's from the dataframe
 
+```{r, CleanAndAggregate, echo=TRUE}
+actLogCompCases<-activityLog[complete.cases(activityLog),]
+stepsPerDay<-aggregate(actLogCompCases$steps,by=list(actLogCompCases$date),FUN=sum)
+```
+
+  2.  If you do not understand the difference between a histogram and a barplot, research the difference between them. Make a histogram of the total number of steps taken each day
+
+```{r, HistogramPlot ,echo=TRUE}
+hist(stepsPerDay$x,xlab="number of steps taken per day",ylab="number of days",main="")
+```
+
+  3.  Calculate and report the mean and median of the total number of steps taken per day
+  
+Mean of steps taken per day:
+```{r,echo=TRUE}
+mean(stepsPerDay$x)
+```
+
+Median of steps taken per day:
+```{r,echo=TRUE}
+median(stepsPerDay$x)
+```
 
 
 ## What is the average daily activity pattern?
