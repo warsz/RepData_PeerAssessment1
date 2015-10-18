@@ -9,9 +9,9 @@ For the scope of the assignment please see the README.md file
 ## Loading and preprocessing the data
 The data set for this assessment is suplied in the GitHub repository so I will assume that it is already downloaded and present in the directory where the R markdown script is run. However if that is not the case and the data needs to be downloaded manually, then it can be found here: [Activity monitoring data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip) [52K]
 
-  1. Show any code that is needed to
+  Show any code that is needed to
 
-  2. Load the data (i.e. read.csv())
+  1. Load the data (i.e. read.csv())
 
   First unpack the compressed file, then load into a dataframe:
 ```{r, ReadingData,echo=TRUE}
@@ -19,45 +19,172 @@ unzip("./activity.zip")
 activityLog<-read.csv("activity.csv")
 ```
 
-  3. Process/transform the data (if necessary) into a format suitable for your analysis. *Answer: This does not to be necessary and removing NA's or recunstructing data will be done below.*
+  2. Process/transform the data (if necessary) into a format suitable for your analysis. **Answer:** *Colomn "interval" is actually time of day and needs renaming and reformatting to propper time format. Then there is a need for a colomn keeping track of which interval given measurement is related to. Removing of NA's or recunstructing values will be done below.*
 
+
+The original dataset:
+```{r,echo=TRUE}
+head(activityLog)
+```
+
+The transformed dataset:
+```{r,transformDF,echo=TRUE}
+time<-substr(as.POSIXct(sprintf("%04.0f", activityLog$interval), format='%H%M'), 12, 16)
+interval<-rep(c(1:288),61)
+actLogTrans<-cbind.data.frame(activityLog$steps,activityLog$date,time,interval)
+colnames(actLogTrans)<-c("steps","date","time","interval")
+head(actLogTrans)
+```
 
 ## What is mean total number of steps taken per day?
- 
+For this part of the assignment, you can ignore the missing values in the dataset.
+
   1.  Calculate the total number of steps taken per day
   
-      First we need to remove all NA's from the dataframe
+      First we need to remove all NA's from the dataframe and then addregate over dates:
 
 ```{r, CleanAndAggregate, echo=TRUE}
-actLogCompCases<-activityLog[complete.cases(activityLog),]
+actLogCompCases<-actLogTrans[complete.cases(actLogTrans),]
 stepsPerDay<-aggregate(actLogCompCases$steps,by=list(actLogCompCases$date),FUN=sum)
+colnames(stepsPerDay)<-c("interval","totalStepsPerDay")
 ```
 
   2.  If you do not understand the difference between a histogram and a barplot, research the difference between them. Make a histogram of the total number of steps taken each day
 
 ```{r, HistogramPlot ,echo=TRUE}
-hist(stepsPerDay$x,xlab="number of steps taken per day",ylab="number of days",main="")
+hist(stepsPerDay$totalStepsPerDay,xlab="number of steps taken per day",ylab="number of days",main="")
 ```
+
+From the histogram we can see that the most frequent number of steps in a day is between 10.000-15.000.
 
   3.  Calculate and report the mean and median of the total number of steps taken per day
   
 Mean of steps taken per day:
 ```{r,echo=TRUE}
-mean(stepsPerDay$x)
+mean(stepsPerDay$totalStepsPerDay)
 ```
 
 Median of steps taken per day:
 ```{r,echo=TRUE}
-median(stepsPerDay$x)
+median(stepsPerDay$totalStepsPerDay)
 ```
 
 
 ## What is the average daily activity pattern?
 
+  1. Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+  
+Here we need to aggregate the data in each interval:
+```{r,stepsPerInterval,echo=TRUE}
+stepsPerInterval<-aggregate(actLogCompCases$steps,by=list(actLogCompCases$interval),FUN=mean)
+colnames(stepsPerInterval)<-c("interval","avgSteps")
+head(stepsPerInterval)
+plot(stepsPerInterval$interval,stepsPerInterval$avgSteps,type="l",xlab="interval",ylab="average number of steps")
+```
+  
+  
+  2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
+Here we need to find the highest number of steps in an interval:
+
+```{r,echo=TRUE}
+max(stepsPerInterval$avgSteps)
+```
+when the average steps are sorted in decreasing order the first value will indicate the interval with the highest number of steps
+
+```{r,echo=TRUE}
+sort.list(stepsPerInterval$avgSteps,decreasing = TRUE)
+stepsPerInterval[sort.list(stepsPerInterval$avgSteps,decreasing = TRUE)[1],]
+```
+Which coresponds in time to
+```{r,echo=TRUE}
+actLogCompCases$time[sort.list(stepsPerInterval$avgSteps,decreasing = TRUE)[1]]
+```
 
 ## Imputing missing values
+Note that there are a number of days/intervals where there are missing values (coded as NA). The presence of missing days may introduce bias into some calculations or summaries of the data.
+
+
+  1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+  
+Total number of missing values:
+```{r,echo=TRUE}
+sum(is.na(activityLog$steps))
+```
+
+  2. Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+Scope:	Write a function that checks if number of steps is a NA and if so replace it with the calculated mean for this interval. Then we can apply the function to the steps column.
+
+
+```{r,echo=TRUE}
+replaceNA<-function(steps,interval){
+correctedSteps=0
+if(is.na(steps)){
+  correctedSteps=stepsPerInterval$avgSteps[interval]
+}else{
+	correctedSteps=steps
+}
+return(correctedSteps)
+}
+```
+
+  3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+```{r,echo=TRUE}
+corrSteps<-mapply(replaceNA,actLogTrans$steps,actLogTrans$interval)
+actLogTransCorrected<-cbind.data.frame(corrSteps,actLogTrans$date,actLogTrans$time,actLogTrans$interval)
+colnames(actLogTransCorrected)<-c("steps","date","time","interval")
+head(actLogTransCorrected)
+```
+
+
+  4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+```{r,echo=TRUE}
+corrStepsPerDay<-aggregate(actLogTransCorrected$steps,by=list(actLogTransCorrected$date),FUN=sum)
+colnames(corrStepsPerDay)<-c("interval","totalStepsPerDay")
+hist(corrStepsPerDay$totalStepsPerDay,xlab="number of steps taken per day",ylab="number of days",main="")
+```
+
+Mean of steps taken per day:
+```{r,echo=TRUE}
+mean(corrStepsPerDay$totalStepsPerDay)
+```
+
+Median of steps taken per day:
+```{r,echo=TRUE}
+median(corrStepsPerDay$totalStepsPerDay)
+```
+
+**Answer:** The mean does not change as I filled in more average values into the data set, the median is shifted to the mean value for that particular rason. The impact of inserting missing data shifts the general structure of the original data and one needs to be very cautios of that since it might change the conclusions reached at the end of analysis.
 
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+For this part the weekdays() function may be of some help here. Use the dataset with the filled-in missing values for this part.
+
+  1. Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+  
+
+First making sure the day names are outputed in English
+```{r,echo=TRUE}
+Sys.setlocale("LC_TIME", "English")
+weekendDays <- c("Saturday","Sunday")
+actLogTransCorrected$wDay <- factor((weekdays(as.POSIXct(actLogTransCorrected$date)) %in% weekendDays), 
+  		levels=c(FALSE, TRUE), labels=c("weekday","weekend"))
+```
+
+
+  2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+
+
+```{r,echo=TRUE}
+library("lattice")
+stepsPerIntervalWeek<-aggregate.data.frame(actLogTransCorrected$steps,by=list(actLogTransCorrected$interval, actLogTransCorrected$wDay),FUN=mean,simplify=TRUE)
+colnames(stepsPerIntervalWeek)<-c("interval","wDay","stepsPerInterval")
+activityplot<-xyplot(stepsPerIntervalWeek$stepsPerInterval~stepsPerIntervalWeek$interval|stepsPerIntervalWeek$wDay, type="l",main="",ylab="Number of steps", xlab="Interval",layout=(c(1,2)))
+print(activityplot)
+```
+
+The number of steps per interval seems to be generally higher in the weekends, but the highest isolated amount is on the weekdays. Seems that the person is rushing to the office in the morning and spends more passive time during the day, possibly at a desk.
