@@ -1,4 +1,9 @@
-# Reproducible Research: Peer Assessment 1
+---
+title: "Reproducible Research: Peer Assessment 1"
+output: 
+  html_document:
+    keep_md: true
+---
 For the scope of the assignment please see the README.md file
 
 ## Loading and preprocessing the data
@@ -75,7 +80,7 @@ colnames(stepsPerDay)<-c("interval","totalStepsPerDay")
 hist(stepsPerDay$totalStepsPerDay,xlab="number of steps taken per day",ylab="number of days",main="")
 ```
 
-![](PA1_template_files/figure-html/HistogramPlot -1.png) 
+![plot of chunk HistogramPlot ](figure/HistogramPlot -1.png) 
 
 From the histogram we can see that the most frequent number of steps in a day is between 10.000-15.000.
 
@@ -128,7 +133,7 @@ head(stepsPerInterval)
 plot(stepsPerInterval$interval,stepsPerInterval$avgSteps,type="l",xlab="interval",ylab="average number of steps")
 ```
 
-![](PA1_template_files/figure-html/stepsPerInterval-1.png) 
+![plot of chunk stepsPerInterval](figure/stepsPerInterval-1.png) 
   
   
   2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
@@ -253,7 +258,7 @@ colnames(corrStepsPerDay)<-c("interval","totalStepsPerDay")
 hist(corrStepsPerDay$totalStepsPerDay,xlab="number of steps taken per day",ylab="number of days",main="")
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-10-1.png) 
+![plot of chunk imputing_histogram](figure/imputing_histogram-1.png) 
 
 Mean of steps taken per day:
 
@@ -285,7 +290,7 @@ For this part the weekdays() function may be of some help here. Use the dataset 
   1. Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
   
 
-Making sure the day names are outputed in English
+First making sure the day names are outputed in English
 
 ```r
 Sys.setlocale("LC_TIME", "English")
@@ -314,4 +319,6 @@ activityplot<-xyplot(stepsPerIntervalWeek$stepsPerInterval~stepsPerIntervalWeek$
 print(activityplot)
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-14-1.png) 
+![plot of chunk weekend_weekday_activity](figure/weekend_weekday_activity-1.png) 
+
+The number of steps per interval seems to be generally higher in the weekends, but the highest isolated amount is on the weekdays. Seems that the person is rushing to the office in the morning and spends more passive time during the day, possibly at a desk.
